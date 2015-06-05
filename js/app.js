@@ -42,17 +42,11 @@ vk.filter('secondsToDateTime', [function() {
 		} else {
 			return  date.getUTCMinutes() + ':' +  date.getUTCSeconds();
 		}
-
-
-
-
     };
 }]);
 
-vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList',
-    function($scope, $sce, getAudioList) {
-
-
+vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer',
+    function($scope, $sce, getAudioList, angularPlayer) {
 
     	$scope.playlist = [];
 
@@ -63,7 +57,7 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList',
 	    socket.on('add to playlist', function(audio){
 
 	    	if ($scope.getById($scope.playlist, audio.id) === undefined) {
-	    		$scope.playlist.push(audio);
+	    		angularPlayer.addTrack(audio);
 	    		$scope.$apply();
 	    	}
 	    });
@@ -71,6 +65,8 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList',
 		$scope.addToPlaylist = function(audio) {
 			socket.emit('add to playlist', audio);
 		};
+
+
 
 		$scope.search = function() {
 			getAudioList.searchAudio($scope.query).success(function(response) {

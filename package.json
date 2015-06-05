@@ -3,7 +3,17 @@
   "version": "0.0.1",
   "description": "best music app",
   "dependencies": {
+    "bcryptjs": "^0.7.12",
+    "body-parser": "^1.9.0",
+    "cookie-parser": "^1.3.3",
+    "ejs": "^2.3.1",
     "express": "^4.10.2",
+    "express-session": "^1.8.2",
+    "jade": "^1.10.0",
+    "mysql": "git://github.com/felixge/node-mysql",
+    "passport": "^0.2.2",
+    "passport-vkontakte": "^0.4.0",
+    "sequelize": "^3.2.0",
     "socket.io": "^1.3.5",
     "vksdk": "^5.1.0"
   }

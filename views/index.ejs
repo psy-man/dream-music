@@ -4,7 +4,7 @@
 
 <head>
 	<meta charset="utf-8">
-	<title>Musik|<%=user%> </title>
+	<title>Musik.app <%=user.fio%></title>
 
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 	<link rel="stylesheet" href="/site/jplayer.flat.css" type="text/css">
@@ -607,7 +607,7 @@
 															<i class="icon-cloud-download">
 															</i>
 														</a>
-														<a href="#" class="m-r-sm" music-player add-song="audio">
+														<a href="#" class="m-r-sm" ng-click="addToPlaylist(audio)">
 															<i class="icon-plus">
 															</i>
 														</a>
