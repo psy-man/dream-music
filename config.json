@@ -1,0 +1,17 @@
+{
+	"app_name": "Music App",
+	"port": "3000",
+
+	"connection": {
+		"host": "localhost",
+		"user": "root",
+		"password": "",
+		"db": "music"
+	},
+
+	"vk": {
+		"clientID":     "4935725",
+		"clientSecret": "K2U90rURV6lJ0jN1Wx7n",
+		"callbackURL":  "http://localhost:3000/auth/vkontakte/callback"
+	}
+}

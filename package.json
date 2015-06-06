@@ -3,11 +3,13 @@
   "version": "0.0.1",
   "description": "best music app",
   "dependencies": {
+    "async": "^1.2.0",
     "bcryptjs": "^0.7.12",
     "body-parser": "^1.9.0",
     "cookie-parser": "^1.3.3",
     "ejs": "^2.3.1",
     "express": "^4.10.2",
+    "express-mysql-session": "^0.4.0",
     "express-session": "^1.8.2",
     "jade": "^1.10.0",
     "mysql": "git://github.com/felixge/node-mysql",
