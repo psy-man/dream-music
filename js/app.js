@@ -58,20 +58,19 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer',
     	    onready: function() {
     		  	if (playlist.length) {
     		  		angular.forEach(playlist, function(audio, key) {
-					  	angularPlayer.addTrack(audio);
+    		  			if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
+					  		angularPlayer.addTrack(audio);
+					  	}
 					});
     		  	}
     	    },
     	});
 
-    	$scope.playlist = [];
-
-	    
-
 	    socket.on('add to playlist', function(audio){
-	    	if ($scope.getById($scope.playlist, audio.id) === undefined) {
+	    	if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
 	    		angularPlayer.addTrack(audio);
 	    	}
+	    	
 	    });
 
 	    socket.on('remove from playlist', function(audio, index){
@@ -83,14 +82,16 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer',
             $scope.$apply(function() {
                 $scope.current = audio_id;
                 if (notice == false) {
-                	notifyMe(audio);
+                	// notifyMe(audio);
                 }
             });
 	    });
 
 
 		$scope.addToPlaylist = function(audio) {
-			socket.emit('add to playlist', audio);
+			if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
+				socket.emit('add to playlist', audio);
+			}
 		};
 		$scope.removeFromPlaylist = function(audio, index) {
 			socket.emit('remove from playlist', audio, index);
@@ -102,6 +103,12 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer',
 			getAudioList.searchAudio($scope.query).success(function(response) {
 		        $scope.audios = response;
 		    });
+		};
+
+		$scope.showMy = function() {
+			getAudioList.getList().success(function(response) {
+	    	    $scope.audios = response;
+	    	});
 		};
 
 
@@ -120,16 +127,12 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer',
 
 
 function notifyMe(audio) {
-		notice = true;
-	  	Notification.requestPermission(function(permission){
-			var notification = new Notification(audio.title,{body:audio.artist,icon:'site/logo.png',dir:'auto'});
-			setTimeout(function(){
-				notification.close();
-				notice = false;
-			},2000);
-		});
-
-
-  // At last, if the user has denied notifications, and you 
-  // want to be respectful there is no need to bother them any more.
+	notice = true;
+  	Notification.requestPermission(function(permission){
+		var notification = new Notification(audio.title,{body:audio.artist,icon:'site/logo.png',dir:'auto'});
+		setTimeout(function(){
+			notification.close();
+			notice = false;
+		},2000);
+	});
 }
