@@ -70,7 +70,7 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer',
 	    	if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
 	    		angularPlayer.addTrack(audio);
 	    	}
-	    	
+
 	    });
 
 	    socket.on('remove from playlist', function(audio, index){
@@ -120,6 +120,110 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer',
 		        }
 		    }
 		};
+
+}]);
+
+
+vk.controller('VkClientCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer',
+    function($scope, $sce, getAudioList, angularPlayer) {
+
+        getAudioList.getList().success(function(response) {
+            $scope.audios = response;
+        });
+
+        $scope.$on('track:id', function(event, data) {
+            socket.emit('set current', data);
+        });
+
+        soundManager.setup({
+            onready: function() {
+                if (playlist.length) {
+                    angular.forEach(playlist, function(audio, key) {
+                        if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
+                            angularPlayer.addTrack(audio);
+                        }
+                    });
+                }
+            },
+        });
+
+        socket.on('add to playlist', function(audio){
+            if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
+                angularPlayer.addTrack(audio);
+            }
+
+        });
+
+        socket.on('remove from playlist', function(audio, index){
+            angularPlayer.removeSong(audio.id, index);
+        });
+
+        socket.on('set current', function(audio_id){
+            var audio = angularPlayer.currentTrackData();
+            $scope.$apply(function() {
+                $scope.current = audio_id;
+                if (notice === false) {
+                    notifyMe(audio);
+                }
+            });
+        });
+
+
+        $scope.addToPlaylist = function(audio) {
+            if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
+                socket.emit('add to playlist', audio);
+            }
+        };
+        $scope.removeFromPlaylist = function(audio, index) {
+            socket.emit('remove from playlist', audio, index);
+        };
+
+
+        $scope.search = function() {
+            getAudioList.searchAudio($scope.query).success(function(response) {
+                $scope.audios = response;
+            });
+        };
+
+        $scope.showMy = function() {
+            getAudioList.getList().success(function(response) {
+                $scope.audios = response;
+            });
+        };
+
+        $scope.play = function() {
+
+            angularPlayer.resetProgress();
+            var smIdsLength = soundManager.soundIDs.length;
+
+            angularPlayer.asyncLoop({
+                length: smIdsLength,
+                functionToLoop: function(loop, i) {
+                    setTimeout(function() {
+                        //custom code
+                        soundManager.destroySound(soundManager.soundIDs[0]);
+                        //custom code
+                        loop();
+                    }, 100);
+                },
+                callback: function() {
+                    //clear playlist
+                    angularPlayer.playlist = [];
+                }
+            });
+
+
+        };
+
+
+
+        $scope.getById = function(arr, id) {
+            for (var d = 0, len = arr.length; d < len; d += 1) {
+                if (arr[d].id === id) {
+                    return arr[d];
+                }
+            }
+        };
 
 }]);
 

@@ -147,8 +147,41 @@ var globalUser;
   	});
   });
 
-
   app.get('/', isLoggedIn, function(req, res) {
+
+    var user = req.user;
+        delete user.token;
+
+    async.parallel({
+        playlist: function(callback){
+          connection.query('SELECT * from playlist', function(err, playlist) {
+            var plays = [];
+
+            for (var i = 0; i <= playlist.length - 1; i++) {
+              var audio = JSON.parse(playlist[i].object);
+
+              if (playlist[i].user) {
+                var us = JSON.parse(playlist[i].user);
+                audio.user_id = us.id;
+                audio.fio = us.fio;
+              }
+
+              plays.push(audio);
+            }
+            callback(null, plays);
+          });
+        },
+    },
+    function(err, results) {
+        // results is now equals to: {one: 1, two: 2}
+        res.render('client', {
+          user: user,
+          playlist: results.playlist
+        });
+    });
+  });
+
+  app.get('/admin', isLoggedIn, function(req, res) {
 
     var user = req.user;
         delete user.token;
@@ -180,8 +213,6 @@ var globalUser;
           playlist: results.playlist
         });
     });
-
-
   });
 
   app.get('/login', function(req, res){
