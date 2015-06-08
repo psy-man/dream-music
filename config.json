@@ -10,8 +10,8 @@
 	},
 
 	"vk": {
-		"clientID":     "4935725",
-		"clientSecret": "K2U90rURV6lJ0jN1Wx7n",
-		"callbackURL":  "http://localhost:3000/auth/vkontakte/callback"
+		"clientID":     "4949989",
+		"clientSecret": "QpLhOk8VHelgs4LMuaDs",
+		"callbackURL":  "http://192.168.0.228:3000/auth/vkontakte/callback"
 	}
 }

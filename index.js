@@ -9,7 +9,7 @@ var express = require('express'),
     VK = require('vksdk'),
     mysql = require('mysql'),
     async = require('async'),
-    SessionStore = require('express-mysql-session')
+    SessionStore = require('express-mysql-session'),
 
     cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
@@ -68,9 +68,14 @@ var globalUser;
   });
   passport.deserializeUser(function(id, done) {
     connection.query('SELECT * from user where id = ?', [id], function(err, user) {
-      vk.setToken(user[0].token);
-      globalUser = user[0];
-      done(err, user[0]);
+      if (user.length) {
+        vk.setToken(user[0].token);
+        globalUser = user[0];
+        done(err, user[0]);
+      } else {
+        done(err, null);
+      }
+
     });
   });
 
@@ -100,7 +105,7 @@ var globalUser;
 
 // routes
   app.get('/auth/vkontakte',
-    passport.authenticate('vkontakte'),
+    passport.authenticate('vkontakte', { scope: ['audio'] }),
     function(req, res){
       // The request will be redirected to vk.com for authentication, so
       // this function will not be called.
@@ -132,7 +137,6 @@ var globalUser;
     // res.send([]);
 
   	vk.request('audio.get', {}, function(_o) {
-
   		var items = _o.response.items;
 
   		for (var i = 0; i <= items.length - 1; i++) {
@@ -147,7 +151,7 @@ var globalUser;
   app.get('/', isLoggedIn, function(req, res) {
 
     var user = req.user;
-        delete user['token'];
+        delete user.token;
 
     async.parallel({
         playlist: function(callback){
@@ -162,22 +166,22 @@ var globalUser;
                 audio.user_id = us.id;
                 audio.fio = us.fio;
               }
-              
+
               plays.push(audio);
-            };
+            }
             callback(null, plays);
           });
         },
     },
     function(err, results) {
         // results is now equals to: {one: 1, two: 2}
-        res.render('index', { 
+        res.render('index', {
           user: user,
           playlist: results.playlist
         });
     });
 
-    
+
   });
 
   app.get('/login', function(req, res){
