@@ -473,6 +473,10 @@ a.text-primary:hover {
     color: #3c763d;
 }
 
+.m-r-sm.text-success {
+    color: #3c763d;
+}
+
 a.text-success:hover {
     color: #2b542c;
 }
@@ -10021,7 +10025,7 @@ a:hover .caret-white {
 
 .list-group-item {
     border-color: #eaeef1;
-    padding-right: 15px;
+    padding-right: 20px;
 }
 
 a.list-group-item:hover,a.list-group-item:focus {
@@ -10645,11 +10649,11 @@ body.container {
         min-height: 60px;
     }
 
-    .scrollable {
+   /* .scrollable {
         -webkit-overflow-scrolling: touch;
-    }
+    }*/
 
-    ::-webkit-scrollbar {
+    /*::-webkit-scrollbar {
         width: 10px;
         height: 10px;
     }
@@ -10667,15 +10671,18 @@ body.container {
 
     ::-webkit-scrollbar-track {
         background-color: rgba(50,50,50,0.05);
-    }
+    }*/
 }
+.scrollme {
+      max-height: 200px;
+    }
 
 .scrollable {
     overflow-x: hidden;
     overflow-y: auto;
 }
 
-.no-touch .scrollable.hover {
+/*.no-touch .scrollable.hover {
     overflow-y: hidden;
 }
 
@@ -10688,7 +10695,7 @@ body.container {
     width: 10px;
     height: 6px;
     background-color: rgba(50,50,50,0.05);
-}
+}*/
 
 .slimScrollBar {
     border-radius: 5px;

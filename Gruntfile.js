@@ -20,13 +20,15 @@ module.exports = function(grunt) {
             js: {
                 files: paths.js,
                 options: {
-                    livereload: true
+                    livereload: true,
+                    delay: 550,
                 }
             },
             html: {
                 files: paths.html,
                 options: {
-                    livereload: true
+                    livereload: true,
+                    delay: 550,
                 }
             },
             // styles: {

@@ -15,7 +15,6 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     session = require('express-session');
 
-var globalUser;
 
 // connect to db
   var connection = mysql.createConnection('mysql://'+config.connection.user+':'+config.connection.password+'@'+config.connection.host+'/'+config.connection.db);
@@ -70,7 +69,6 @@ var globalUser;
     connection.query('SELECT * from user where id = ?', [id], function(err, user) {
       if (user.length) {
         vk.setToken(user[0].token);
-        globalUser = user[0];
         done(err, user[0]);
       } else {
         done(err, null);
@@ -86,10 +84,20 @@ var globalUser;
         if (err) throw err;
 
         if (user.length) {
+
+            connection.query('UPDATE user SET ? where id = ?', [{token: accessToken}, user[0].id], function(err, result) {
+              if (err) throw err;
+
+              connection.query('SELECT * from user where id = ?', [user[0].id], function(err, user) {
+                if (err) throw err;
+                return done(null, user[0]);
+               });
+            });
+
             return done(null, user[0]);
         } else {
 
-            connection.query('INSERT INTO user SET ?', {vk_id: profile.id, fio: profile.displayName, token: accessToken}, function(err, result) {
+            connection.query('INSERT INTO user SET ?', {vk_id: profile.id, fio: profile.displayName, token: accessToken, photo: profile._json.photo}, function(err, result) {
               if (err) throw err;
 
               connection.query('SELECT * from user where id = ?', [result.insertId], function(err, user) {
@@ -119,7 +127,7 @@ var globalUser;
     });
 
   app.get('/search', isLoggedIn, function(req, res){
-    vk.request('audio.search', {q: req.query.q}, function(_o) {
+    vk.request('audio.search', {q: req.query.q, search_own: 1}, function(_o) {
 
       var items = _o.response.items;
 
@@ -136,7 +144,8 @@ var globalUser;
 
     // res.send([]);
 
-  	vk.request('audio.get', {}, function(_o) {
+  	vk.request('audio.get', {count: 100}, function(_o) {
+
   		var items = _o.response.items;
 
   		for (var i = 0; i <= items.length - 1; i++) {
@@ -147,6 +156,14 @@ var globalUser;
   	});
   });
 
+  app.get('/get_lirics', isLoggedIn, function(req, res){
+    vk.request('audio.getLyrics', {lyrics_id: req.query.lyrics_id}, function(_o) {
+      res.send(_o.response.text);
+    });
+  });
+
+
+
   app.get('/', isLoggedIn, function(req, res) {
 
     var user = req.user;
@@ -154,11 +171,13 @@ var globalUser;
 
     async.parallel({
         playlist: function(callback){
-          connection.query('SELECT * from playlist', function(err, playlist) {
+          connection.query('SELECT * from playlist order by pos', function(err, playlist) {
             var plays = [];
 
             for (var i = 0; i <= playlist.length - 1; i++) {
               var audio = JSON.parse(playlist[i].object);
+
+              audio.current = playlist[i].current;
 
               if (playlist[i].user) {
                 var us = JSON.parse(playlist[i].user);
@@ -188,11 +207,13 @@ var globalUser;
 
     async.parallel({
         playlist: function(callback){
-          connection.query('SELECT * from playlist', function(err, playlist) {
+          connection.query('SELECT * from playlist order by pos', function(err, playlist) {
             var plays = [];
 
             for (var i = 0; i <= playlist.length - 1; i++) {
               var audio = JSON.parse(playlist[i].object);
+
+              audio.current = playlist[i].current;
 
               if (playlist[i].user) {
                 var us = JSON.parse(playlist[i].user);
@@ -241,13 +262,12 @@ function isLoggedIn(req, res, next) {
 io.on('connection', function(socket){
     console.log('a user connected');
 
-    socket.on('add to playlist', function(audio){
-        connection.query('INSERT INTO playlist SET ?', {audio_id: audio.id, object: JSON.stringify(audio), user: JSON.stringify(globalUser)}, function(err, result) {
+    socket.on('add to playlist', function(audio, user){
+
+        connection.query('INSERT INTO playlist SET ?', {audio_id: audio.id, object: JSON.stringify(audio), user: JSON.stringify(user)}, function(err, result) {
           if (err) throw err;
-
-          audio.user_id = globalUser.id;
-          audio.fio = globalUser.fio;
-
+          audio.user_id = user.id;
+          audio.fio = user.fio;
           io.emit('add to playlist', audio);
         });
     });
@@ -261,19 +281,32 @@ io.on('connection', function(socket){
     });
 
     socket.on('set current', function(audio_id){
-        connection.query('UPDATE playlist SET current = 0', function(err, result) {
-          if (err) throw err;
-          connection.query('UPDATE playlist SET current = 1 where audio_id = ?', [audio_id], function(err, result) {
-            if (err) throw err;
-            io.emit('set current', audio_id);
-            connection.query('select id from playlist where current = 1', function(err, result) {
+      async.waterfall([
+          function(callback) {
+            connection.query('UPDATE playlist SET current = 0', function(err, result) {
               if (err) throw err;
-              connection.query('DELETE FROM playlist WHERE id < ?', [result[0].id - 5], function(err, result) {
-                if (err) throw err;
-              });
+              callback(null, result);
             });
-          });
-        });
+          },
+          function(result, callback) {
+            connection.query('UPDATE playlist SET current = 1 where audio_id = ?', [audio_id], function(err, result) {
+              if (err) throw err;
+              io.emit('set current', audio_id);
+              callback(null, 'done');
+            });
+          },
+      ], function (err, result) {
+        console.log(result);
+      });
+    });
+
+    socket.on('sort', function(data, playlist) {
+      for (var i = data.length - 1; i >= 0; i--) {
+        connection.query('UPDATE playlist SET pos = ? where audio_id = ?', [data[i].position, data[i].id]);
+      }
+
+
+      io.emit('sort', data, playlist);
     });
 
 });
