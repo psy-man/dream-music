@@ -71,60 +71,96 @@ vk.directive('playlistScroll', function() {
 });
 
 
-vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer', 'ngDialog',
-    function($scope, $sce, getAudioList, angularPlayer, ngDialog) {
+vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer', 'ngDialog', '$timeout', '$rootScope',
+    function($scope, $sce, getAudioList, angularPlayer, ngDialog, $timeout, $rootScope) {
 
         $scope.user = user;
 
-        $scope.sortableOptions = {
-            stop: function(e, ui) {
-                var j = 0;
-                // this callback has the changed model
-                var logEntry = $scope.playlist.map(function(i) {
-                    return {
-                        id: i.id,
-                        position: j++
-                    };
-                });
+        $scope.mainPlaylist = [];
 
-                socket.emit('sort', logEntry, $scope.playlist);
-            }
-        };
+        // $scope.sortableOptions = {
+        //     // stop: function(e, ui) {
+        //     //     var j = 0;
+        //     //     // this callback has the changed model
+        //     //     var logEntry = $scope.playlist.map(function(i) {
+        //     //         return {
+        //     //             id: i.id,
+        //     //             position: j++
+        //     //         };
+        //     //     });
+
+        //     //     // socket.emit('sort', logEntry, $scope.playlist);
+        //     // }
+        //     start: function(event, ui) {
+        //         console.log("Start position: " + ui.item.index());
+        //     },
+        //     stop: function(event, ui) {
+        //         console.log("New position: " + ui.item.index());
+        //     }
+        // };
 
     	getAudioList.getList().success(function(response) {
     	    $scope.audios = response;
     	});
 
     	$scope.$on('track:id', function(event, data) {
-    		socket.emit('set current', data);
+
+            $timeout(function() {
+                var trackId = angularPlayer.getCurrentTrack();
+                var currentKey = angularPlayer.isInArray($scope.mainPlaylist, trackId);
+                    $scope.currentMyPlaying = $scope.mainPlaylist[currentKey];
+
+                socket.emit('set current', data);
+            }, 0);
+
         });
 
     	soundManager.setup({
     	    onready: function() {
-    		  	if (playlist.length) {
-    		  		angular.forEach(playlist, function(audio, key) {
-    		  			if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
-					  		angularPlayer.addTrack(audio);
+                if (playlist.length) {
 
-                            if (audio.current) {
-                                // $scope.current = audio.id;
-                                angularPlayer.initPlayTrack(audio.id);
-                            }
-					  	}
-					});
-    		  	}
+                    $scope.mainPlaylist = playlist;
+
+                    angular.forEach(playlist, function(audio, key) {
+
+                        soundManager.createSound({
+                            id: audio.id,
+                            url: audio.url
+                        });
+
+                        if (audio.current) {
+                            angularPlayer.initPlayTrack(audio.id);
+                        }
+                    });
+                }
     	    },
     	});
 
 	    socket.on('add to playlist', function(audio){
-	    	if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
-	    		angularPlayer.addTrack(audio);
-	    	}
+	    	if ($scope.getById($scope.mainPlaylist, audio.id) === undefined) {
+	    		soundManager.createSound({
+                    id: audio.id,
+                    url: audio.url
+                });
 
+                $scope.$apply(function() {
+                    $scope.mainPlaylist.push(audio);
+                });
+	    	}
 	    });
 
-	    socket.on('remove from playlist', function(audio, index){
-            angularPlayer.removeSong(audio.id, index);
+	    socket.on('remove from playlist', function(audio, index) {
+            var trackId = angularPlayer.getCurrentTrack();
+
+            if(audio.id === trackId) {
+                angularPlayer.nextTrack();
+            }
+
+            soundManager.destroySound(audio.id);
+
+            $scope.$apply(function() {
+                $scope.mainPlaylist.splice(index, 1);
+            });
         });
 
         socket.on('delete old', function(audios, index){
@@ -133,21 +169,50 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer', 'ngD
             });
 	    });
 
-	    socket.on('set current', function(audio_id){
-	    	var audio = angularPlayer.currentTrackData();
+        socket.on('set current', function(audio_id){
+            var audio = angularPlayer.currentTrackData();
             $scope.$apply(function() {
                 $scope.current = audio_id;
                 if (notice === false) {
-                	notifyMe(audio);
+                    notifyMe(audio);
                 }
+            });
+        });
+
+	    socket.on('shuffle', function(currentIndex, shuffledArray){
+
+            for (var i = $scope.mainPlaylist.length - 1; i >= 0; i--) {
+
+                audio = $scope.mainPlaylist[i];
+
+                if (i > currentIndex + 1) {
+                    soundManager.destroySound(audio.id);
+                    $scope.mainPlaylist.splice(i, 1);
+                }
+            }
+
+	    	angular.forEach(shuffledArray, function(audio, key) {
+
+                soundManager.createSound({
+                    id: audio.id,
+                    url: audio.url
+                });
+
+                $scope.mainPlaylist.push(audio);
             });
 	    });
 
+        $scope.play = function(audio) {
 
-
+            if ($scope.currentMyPlaying && $scope.currentMyPlaying.id === audio.id) {
+                angularPlayer.play();
+            } else {
+                angularPlayer.playTrack(audio.id);
+            }
+        };
 
 		$scope.addToPlaylist = function(audio) {
-			if ($scope.getById(angularPlayer.getPlaylist(), audio.id) === undefined) {
+			if ($scope.getById($scope.mainPlaylist, audio.id) === undefined) {
 				socket.emit('add to playlist', audio, $scope.user);
 			}
 		};
@@ -189,7 +254,26 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer', 'ngD
         }
 
         $scope.shaffleNew = function() {
-            shuffle($scope.playlist);
+            // shuffle($scope.mainPlaylist);
+            // shuffle($scope.mainPlaylist);
+
+            var currentIndex = $scope.getIndexById($scope.mainPlaylist, $scope.currentMyPlaying.id);
+
+            var tempArr = [],
+                audio = null;
+
+            for (var i = $scope.mainPlaylist.length - 1; i >= 0; i--) {
+
+                audio = $scope.mainPlaylist[i];
+
+                if (i > currentIndex + 1) {
+                    tempArr.push(audio);
+                }
+            }
+
+            var shuffledArray = shuffle(tempArr);
+
+            socket.emit('shuffle', currentIndex, shuffledArray);
         };
 
 		$scope.getLirics = function(lyrics_id) {
@@ -212,6 +296,14 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer', 'ngD
 		    }
 		};
 
+        $scope.getIndexById = function(arr, id) {
+            for (var d = 0, len = arr.length; d < len; d += 1) {
+                if (arr[d].id === id) {
+                    return d;
+                }
+            }
+        };
+
 }]);
 
 
@@ -222,6 +314,9 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
 
         $scope.mainPlaylist = [];
         $scope.myPlaylist = [];
+
+        $scope.currentPlaylist = null;
+
         $scope.searchDelay = false;
 
         soundManager.setup({
@@ -232,13 +327,13 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
 
                     if (playlist.length) {
 
-                        $scope.addToList(playlist);
                         $scope.mainPlaylist = playlist;
 
                         angular.forEach(playlist, function(audio, key) {
-                            $scope.myPlaylist.push(audio);
+
                             if (audio.current) {
                                 $scope.current = audio.id;
+
                                 if (notice === false) {
                                     $timeout(function(){
                                         notifyMe(audio);
@@ -272,6 +367,14 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
 
         socket.on('add to playlist', function(audio){
             if ($scope.getById($scope.mainPlaylist, audio.id) === undefined) {
+
+                if ($scope.currentPlaylist === 'mainPlaylist') {
+                    soundManager.createSound({
+                        id: audio.id,
+                        url: audio.url
+                    });
+                }
+
                 $scope.$apply(function() {
                     $scope.mainPlaylist.push(audio);
                 });
@@ -279,6 +382,15 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
         });
 
         socket.on('remove from playlist', function(audio, index){
+
+            // var trackId = angularPlayer.getCurrentTrack();
+
+            // if(audio.id === trackId) {
+            //     angularPlayer.nextTrack();
+            // }
+
+            soundManager.destroySound(audio.id);
+
             $scope.$apply(function() {
                 $scope.mainPlaylist.splice(index, 1);
             });
@@ -301,8 +413,71 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
             });
         });
 
-        $scope.play = function(audio) {
-            soundManager.play(audio.id);
+        socket.on('shuffle', function(currentIndex, shuffledArray) {
+
+            for (var i = $scope.mainPlaylist.length - 1; i >= 0; i--) {
+
+                audio = $scope.mainPlaylist[i];
+
+                if (i > currentIndex + 1) {
+
+                    if ($scope.currentPlaylist === 'mainPlaylist') {
+                        soundManager.destroySound(audio.id);
+                    }
+
+                    $scope.$apply(function() {
+                        $scope.mainPlaylist.splice(i, 1);
+                    });
+
+                }
+            }
+
+            angular.forEach(shuffledArray, function(audio, key) {
+
+                if ($scope.currentPlaylist === 'mainPlaylist') {
+                    soundManager.createSound({
+                        id: audio.id,
+                        url: audio.url
+                    });
+                }
+
+                $scope.$apply(function() {
+                    $scope.mainPlaylist.push(audio);
+                });
+            });
+
+            if ($scope.currentPlaylist === 'mainPlaylist') {
+                angularPlayer.stop();
+            }
+        });
+
+
+
+        $scope.play = function(audio, playlist) {
+
+            if ($scope.currentPlaylist !== playlist) {
+                $scope.currentPlaylist = playlist;
+
+                angularPlayer.clearPlaylist(function() {
+                    var response = $scope[playlist];
+
+                    for(var i = 0; i < response.length; i++) {
+                        soundManager.createSound({
+                            id: response[i].id,
+                            url: response[i].url
+                        });
+                    }
+                    angularPlayer.playTrack(audio.id);
+                });
+            } else {
+
+                if ($scope.currentMyPlaying.id === audio.id) {
+                    angularPlayer.play();
+                } else {
+                    angularPlayer.playTrack(audio.id);
+                }
+
+            }
         };
 
 
@@ -316,7 +491,8 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
         };
 
         $scope.$on('track:id', function(event, data) {
-            $scope.$apply(function() {
+
+            $timeout(function() {
                 var trackId = angularPlayer.getCurrentTrack();
                 var currentKey = angularPlayer.isInArray($scope.myPlaylist, trackId);
 
@@ -326,8 +502,10 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
                     currentKey = angularPlayer.isInArray($scope.mainPlaylist, trackId);
                     $scope.currentMyPlaying = $scope.mainPlaylist[currentKey];
                 }
+            }, 0);
 
-            });
+
+
         });
 
 
@@ -357,15 +535,8 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
 
         $scope.addToList = function(response) {
             for(var i = 0; i < response.length; i++) {
-
                 var inArrayKey = angularPlayer.isInArray( $scope.myPlaylist, response[i].id);
                 if(inArrayKey === false) {
-
-                    soundManager.createSound({
-                        id: response[i].id,
-                        url: response[i].url
-                    });
-
                     $scope.myPlaylist.push(response[i]);
                 }
             }
@@ -399,12 +570,12 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
 
 
 function notifyMe(audio) {
-	// notice = true;
- //  	Notification.requestPermission(function(permission){
-	// 	var notification = new Notification(audio.title,{body:audio.artist,icon:'site/logo.png',dir:'auto'});
-	// 	setTimeout(function(){
-	// 		notification.close();
-	// 		notice = false;
-	// 	},2000);
-	// });
+	notice = true;
+  	Notification.requestPermission(function(permission){
+		var notification = new Notification(audio.artist + ' ' + audio.title,{body: audio.fio,icon:'site/logo.png',dir:'auto'});
+		setTimeout(function(){
+			notification.close();
+			notice = false;
+		},5000);
+	});
 }

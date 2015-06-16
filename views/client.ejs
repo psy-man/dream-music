@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="/site/ngDialog-theme-plain.css">
     <link rel="stylesheet" href="/site/ngDialog-custom-width.css">
 
+    <link href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADj/wAAwf8AAMH/AADB/wAAwZ8AAOE/AAD9PwAA/Z8AAP3PAAD9jwAA/R8AAPw/AAD8fwAA/P8AAP3/AAD//wAA" rel="icon" type="image/x-icon" />
+
 	<script>
 		var user = <%-JSON.stringify(user)%>;
 		var playlist = <%-JSON.stringify(playlist)%>;
@@ -170,13 +172,19 @@
 										<section class="mCustomScrollbar" data-mcs-theme="minimal">
 
 											<ul class="list-group list-group-lg no-radius no-border no-bg m-t-n-xxs m-b-none auto">
-												<li class="list-group-item" ng-repeat="audio in myPlaylist track by $index" ng-show="getById(mainPlaylist, audio.id) === undefined">
-													<div class="pull-right m-l">
+												<li class="list-group-item" ng-repeat="audio in myPlaylist track by $index">
+													<div class="pull-right m-l" ng-show="getById(mainPlaylist, audio.id) === undefined">
 														<a href="#" class="m-r-sm" ng-click="addToPlaylist(audio)">
 															<i class="icon-plus">
 															</i>
 														</a>
 													</div>
+
+													<a href="#" class="jp-play-me m-r-sm pull-left">
+														<i class="icon-control-play " ng-click="play(audio, 'myPlaylist')"  ng-class="{'text-active': currentMyPlaying.id == audio.id && isPlaying === true}"></i>
+														<i class="icon-control-pause " pause-music  ng-class="{'text-active': (currentMyPlaying.id != audio.id && isPlaying === true) || !isPlaying}"></i>
+													</a>
+
 													<div class="clear text-ellipsis" ng-if="!audio.lyrics_id">
 														<span>{{audio.artist}} - {{audio.title}}</span>
 														<span class="text-muted"> -- {{audio.duration | secTime}}
@@ -200,11 +208,11 @@
 												<li class="list-group-item clearfix" ng-repeat="audio in mainPlaylist track by $index" ng-class="{'active': current == audio.id}">
 
 													<a href="#" class="jp-play-me pull-right m-t-sm m-l text-md">
-														<i class="icon-control-play text" play-from-playlist="audio" ng-class="{'text-active': currentMyPlaying.id == audio.id && isPlaying === true}"></i>
-														<i class="icon-control-pause" stop-music ng-class="{'text-active': (currentMyPlaying.id != audio.id && isPlaying === true) || !isPlaying}"></i>
+														<i class="icon-control-play text" ng-click="play(audio, 'mainPlaylist')"  ng-class="{'text-active': currentMyPlaying.id == audio.id && isPlaying === true}"></i>
+														<i class="icon-control-pause" pause-music  ng-class="{'text-active': (currentMyPlaying.id != audio.id && isPlaying === true) || !isPlaying}"></i>
 													</a>
 
-													<a href="#" class="jp-play-me pull-right m-t-sm m-l text-md" ng-click="removeFromPlaylist(audio, $index)" ng-if="audio.user_id === user.id">
+													<a href="#" class="jp-play-me pull-right m-t-sm m-l text-md" ng-click="removeFromPlaylist(audio, $index)" ng-if="audio.user_id === user.id && current != audio.id">
 														<i class="icon-close"></i>
 													</a>
 
@@ -259,7 +267,7 @@
 												<div class="jp-progress hidden-xs">
 													<div class="jp-seek-bar dk" style="width: 100%;" seek-track>
 														<div class="jp-play-bar bg" ng-style="{width : ( progress + '%' ) }"></div>
-														<div class="jp-title text-lt" style="display: none;">{{ currentMyPlaying.artist }} - {{currentMyPlaying.title}}</div>
+														<div class="jp-title text-lt not-active">{{ currentMyPlaying.artist }} - {{currentMyPlaying.title}}</div>
 													</div>
 												</div>
 												<div class="hidden-xs hidden-sm jp-current-time text-xs text-muted">{{ currentPostion }}</div>
@@ -273,9 +281,9 @@
 														</i>
 													</a>
 												</div>
-												<div class="hidden-xs hidden-sm jp-volume" volume-bar>
-													<div class="jp-volume-bar dk">
-														<div class="jp-volume-bar-value lter" ng-style="{width : ( volume + '%' ) }">
+												<div class="hidden-xs hidden-sm jp-volume" >
+													<div class="jp-volume-bar dk " volume-bar>
+														<div class="jp-volume-bar-value lter not-active" ng-style="{width : ( volume + '%' ) }">
 														</div>
 													</div>
 												</div>
@@ -303,8 +311,8 @@
 
 	<!-- Bootstrap -->
 	<!-- App -->
-	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.min.js"></script>
-	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular-sanitize.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.16/angular.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.16/angular-sanitize.min.js"></script>
 	<script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
 	<script src="/js/angular-soundmanager2.js"></script>
 	<script src="/js/ngDialog.js"></script>

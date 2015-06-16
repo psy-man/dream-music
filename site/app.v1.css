@@ -14287,3 +14287,7 @@ a.bg-light:hover,a.bg-light:focus {
 .hide-player {
     bottom: -80px !important;
 }
+.not-active {
+   pointer-events: none;
+   cursor: default;
+}

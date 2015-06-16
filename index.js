@@ -144,7 +144,7 @@ var express = require('express'),
 
     // res.send([]);
 
-  	vk.request('audio.get', {count: 100}, function(_o) {
+  	vk.request('audio.get', {count: 300}, function(_o) {
 
   		var items = _o.response.items;
 
@@ -307,6 +307,17 @@ io.on('connection', function(socket){
 
 
       io.emit('sort', data, playlist);
+    });
+
+    socket.on('shuffle', function(index, playlist) {
+
+      connection.query('UPDATE playlist SET pos = 0', function(err, result) {
+        if (err) throw err;
+        for (var i = 0; i <= playlist.length - 1; i++) {
+          connection.query('UPDATE playlist SET pos = ? where audio_id = ?', [i, playlist[i].id]);
+        }
+      });
+      io.emit('shuffle', index, playlist);
     });
 
 });

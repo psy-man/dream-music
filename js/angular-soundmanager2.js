@@ -96,7 +96,7 @@
             'multiShot': true, // let sounds "restart" or layer on top of each other when played multiple times, rather than one-shot/one at a time
             'multiShotEvents': false, // fire multiple sound events (currently onfinish() only) when multiShot is enabled
             'position': null, // offset (milliseconds) to seek to within loaded sound data.
-            'pan': 0, // "pan" settings, left-to-right, -100 to 100
+            'pan': -75, // "pan" settings, left-to-right, -100 to 100
             'stream': true, // allows playing before entire file has loaded (recommended)
             'to': null, // position to end playback within a sound (msec), default = end
             'type': null, // MIME-like hint for file pattern / canPlay() tests, eg. audio/mp3
@@ -4426,7 +4426,11 @@ ngSoundManager.factory('angularPlayer', ['$rootScope', '$log',
             isPlaying = false,
             volume = 90,
             trackProgress = 0,
-            playlist = [];
+            playlist = [],
+
+            myPlaylist = [],
+            mainPlaylist = [],
+            currentPlaylist = null;
 
         return {
             /**
@@ -4684,15 +4688,8 @@ ngSoundManager.factory('angularPlayer', ['$rootScope', '$log',
                 if(typeof nextTrack !== 'undefined') {
                     this.playTrack(nextTrack);
                 } else {
-                    //if no next track found
-                    if(repeat === true) {
-                        //start first track if repeat is on
-                        this.playTrack(soundManager.soundIDs[0]);
-                    } else {
-                        //breadcase not playing anything
-                        isPlaying = false;
-                        $rootScope.$broadcast('music:isPlaying', isPlaying);
-                    }
+                    var trackToPlay = soundManager.soundIDs[0];
+                    this.initPlayTrack(trackToPlay);
                 }
             },
             prevTrack: function() {
@@ -4772,12 +4769,8 @@ ngSoundManager.factory('angularPlayer', ['$rootScope', '$log',
                 this.asyncLoop({
                     length: smIdsLength,
                     functionToLoop: function(loop, i) {
-                        setTimeout(function() {
-                            //custom code
-                            soundManager.destroySound(soundManager.soundIDs[0]);
-                            //custom code
-                            loop();
-                        }, 100);
+                        soundManager.destroySound(soundManager.soundIDs[0]);
+                        loop();
                     },
                     callback: function() {
                         //callback custom code
@@ -4801,44 +4794,38 @@ ngSoundManager.factory('angularPlayer', ['$rootScope', '$log',
 ]);
 
 
-ngSoundManager.directive('soundManager', ['$filter', 'angularPlayer',
-    function($filter, angularPlayer) {
+ngSoundManager.directive('soundManager', ['$filter', 'angularPlayer', '$timeout',
+    function($filter, angularPlayer, $timeout) {
         return {
             restrict: "E",
             link: function(scope, element, attrs) {
                 //init and load sound manager 2
                 angularPlayer.init();
                 scope.$on('track:progress', function(event, data) {
-                    scope.$apply(function() {
-                        scope.progress = data;
-                    });
+                    $timeout(function(){
+                       scope.progress = data;
+                    }, 0);
                 });
                 scope.$on('track:id', function(event, data) {
-                    scope.$apply(function() {
-                        scope.currentPlaying = angularPlayer.currentTrackData();
-                    });
+                    $timeout(function(){
+                       scope.currentPlaying = angularPlayer.currentTrackData();
+                    }, 0);
                 });
                 scope.$on('currentTrack:position', function(event, data) {
-                    scope.$apply(function() {
-                        scope.currentPostion = $filter('humanTime')(data);
-                    });
+                    $timeout(function(){
+                       scope.currentPostion = $filter('humanTime')(data);
+                    }, 0);
                 });
                 scope.$on('currentTrack:duration', function(event, data) {
-                    scope.$apply(function() {
-                        scope.currentDuration = $filter('humanTime')(data);
-                    });
+                    $timeout(function(){
+                       scope.currentDuration = $filter('humanTime')(data);
+                    }, 0);
                 });
                 scope.isPlaying = false;
                 scope.$on('music:isPlaying', function(event, data) {
-                    scope.$apply(function() {
-                        scope.isPlaying = data;
-                    });
-                });
-                scope.playlist = angularPlayer.getPlaylist(); //on load
-                scope.$on('player:playlist', function(event, data) {
-                    scope.$apply(function() {
-                        scope.playlist = data;
-                    });
+                    $timeout(function(){
+                       scope.isPlaying = data;
+                    }, 0);
                 });
             }
         };
@@ -5081,15 +5068,21 @@ ngSoundManager.directive('playAll', ['angularPlayer', '$log',
         return {
             restrict: "EA",
             scope: {
-                songs: '=playAll'
+                songs: '=playAll',
+                audio: '=play'
             },
             link: function(scope, element, attrs) {
                 element.bind('click', function(event) {
                     //first clear the playlist
                     angularPlayer.clearPlaylist(function(data) {
+                        console.log(scope.audio);
                         $log.debug('cleared, ok now add to playlist');
                         //add songs to playlist
                         for(var i = 0; i < scope.songs.length; i++) {
+                            // soundManager.createSound({
+                            //     id: scope.songs[i].id,
+                            //     url: scope.songs[i].url
+                            // });
                             angularPlayer.addTrack(scope.songs[i]);
                         }
 
