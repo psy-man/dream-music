@@ -178,6 +178,10 @@
 															<i class="icon-plus">
 															</i>
 														</a>
+
+														<a ng-href="{{audio.url}}" class="m-r-sm" download="{{audio.artist + ' - ' + audio.title }}.mp3">
+															<i class="icon-cloud-download"></i>
+														</a>
 													</div>
 
 													<a href="#" class="jp-play-me m-r-sm pull-left">
@@ -214,6 +218,10 @@
 
 													<a href="#" class="jp-play-me pull-right m-t-sm m-l text-md" ng-click="removeFromPlaylist(audio, $index)" ng-if="audio.user_id === user.id && current != audio.id">
 														<i class="icon-close"></i>
+													</a>
+
+													<a ng-href="{{audio.url}}" class="pull-right m-t-sm m-l text-md" download>
+														<i class="icon-cloud-download"></i>
 													</a>
 
 													<a class="clear" href="" ng-click="getLirics(audio.lyrics_id)" ng-if="audio.lyrics_id">

@@ -184,7 +184,13 @@
 														<a href="#" class="m-r-sm" ng-click="addToPlaylist(audio)" ng-show="getById(mainPlaylist, audio.id) === undefined">
 															<i class="icon-plus"></i>
 														</a>
+
+														<a ng-href="{{audio.url}}" class="m-r-sm" download="{{audio.artist + ' - ' + audio.title }}.mp3">
+															<i class="icon-cloud-download"></i>
+														</a>
 													</div>
+
+
 													<div class="clear text-ellipsis" ng-if="!audio.lyrics_id">
 														<span>{{audio.artist}} - {{audio.title}}</span>
 														<span class="text-muted"> -- {{audio.duration | secTime}}
@@ -216,6 +222,10 @@
 
 													<a href="#" class="jp-play-me pull-right m-t-sm m-l text-md" ng-click="removeFromPlaylist(audio, $index)">
 														<i class="icon-close"></i>
+													</a>
+
+													<a ng-href="{{audio.url}}" class="pull-right m-t-sm m-l text-md" download="{{audio.artist + ' - ' + audio.title }}">
+														<i class="icon-cloud-download"></i>
 													</a>
 
 													<a class="clear" href="" ng-click="getLirics(audio.lyrics_id)" ng-if="audio.lyrics_id">

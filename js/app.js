@@ -145,6 +145,8 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer', 'ngD
 
                 $scope.$apply(function() {
                     $scope.mainPlaylist.push(audio);
+
+                    notifyAdd(audio);
                 });
 	    	}
 	    });
@@ -170,11 +172,19 @@ vk.controller('VkCtrl', ['$scope', '$sce', 'getAudioList', 'angularPlayer', 'ngD
 	    });
 
         socket.on('set current', function(audio_id){
-            var audio = angularPlayer.currentTrackData();
+            var audio = $scope.currentMyPlaying;
             $scope.$apply(function() {
                 $scope.current = audio_id;
                 if (notice === false) {
                     notifyMe(audio);
+                }
+
+                var currentIndex = $scope.getIndexById($scope.mainPlaylist, $scope.currentMyPlaying.id);
+
+                if (currentIndex + 5 > $scope.mainPlaylist.length) {
+                    $timeout(function(){
+                        notifyNeedMore();
+                    }, 10000);
                 }
             });
         });
@@ -410,10 +420,22 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
                 if (notice === false) {
                     notifyMe(audio);
                 }
+
+
+
+                var currentIndex = $scope.getIndexById($scope.mainPlaylist, audio_id);
+
+                if (currentIndex + 5 > $scope.mainPlaylist.length) {
+                    $timeout(function(){
+                        notifyNeedMore();
+                    }, 10000);
+                }
             });
         });
 
         socket.on('shuffle', function(currentIndex, shuffledArray) {
+
+            notifyShuffle();
 
             for (var i = $scope.mainPlaylist.length - 1; i >= 0; i--) {
 
@@ -430,6 +452,8 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
                     });
 
                 }
+
+
             }
 
             angular.forEach(shuffledArray, function(audio, key) {
@@ -564,18 +588,52 @@ vk.controller('VkClientCtrl', ['$scope', '$rootScope', '$sce', 'getAudioList', '
             }
         };
 
+        $scope.getIndexById = function(arr, id) {
+            for (var d = 0, len = arr.length; d < len; d += 1) {
+                if (arr[d].id === id) {
+                    return d;
+                }
+            }
+        };
+
 }]);
 
 
 
 
 function notifyMe(audio) {
-	notice = true;
   	Notification.requestPermission(function(permission){
 		var notification = new Notification(audio.artist + ' ' + audio.title,{body: audio.fio,icon:'site/logo.png',dir:'auto'});
 		setTimeout(function(){
 			notification.close();
-			notice = false;
 		},5000);
 	});
+}
+
+function notifyAdd(audio) {
+    Notification.requestPermission(function(permission){
+        var notification = new Notification('Track has been added',{body: audio.fio + '\n' +audio.artist + ' ' + audio.title,icon:'site/logo.png',dir:'auto'});
+        setTimeout(function(){
+            notification.close();
+        },2000);
+    });
+}
+
+function notifyNeedMore() {
+    Notification.requestPermission(function(permission){
+        var notification = new Notification('There are few songs',{body: 'Please add more',icon:'site/logo.png',dir:'auto'});
+        setTimeout(function(){
+            notification.close();
+        },2000);
+    });
+}
+
+
+function notifyShuffle() {
+    Notification.requestPermission(function(permission){
+        var notification = new Notification('Shuffled',{body: 'yo yo you man',icon:'site/logo.png',dir:'auto'});
+        setTimeout(function(){
+            notification.close();
+        },2000);
+    });
 }
