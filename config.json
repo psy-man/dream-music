@@ -5,13 +5,13 @@
 	"connection": {
 		"host": "localhost",
 		"user": "root",
-		"password": "",
+		"password": "1q2w3e",
 		"db": "music"
 	},
 
 	"vk": {
 		"clientID":     "4949989",
 		"clientSecret": "QpLhOk8VHelgs4LMuaDs",
-		"callbackURL":  "http://192.168.0.228:3000/auth/vkontakte/callback"
+		"callbackURL":  "http://music.evne.org/auth/vkontakte/callback"
 	}
 }

@@ -174,18 +174,20 @@ var express = require('express'),
           connection.query('SELECT * from playlist order by pos', function(err, playlist) {
             var plays = [];
 
-            for (var i = 0; i <= playlist.length - 1; i++) {
-              var audio = JSON.parse(playlist[i].object);
+            if (playlist) {
+              for (var i = 0; i <= playlist.length - 1; i++) {
+                var audio = JSON.parse(playlist[i].object);
 
-              audio.current = playlist[i].current;
+                audio.current = playlist[i].current;
 
-              if (playlist[i].user) {
-                var us = JSON.parse(playlist[i].user);
-                audio.user_id = us.id;
-                audio.fio = us.fio;
+                if (playlist[i].user) {
+                  var us = JSON.parse(playlist[i].user);
+                  audio.user_id = us.id;
+                  audio.fio = us.fio;
+                }
+
+                plays.push(audio);
               }
-
-              plays.push(audio);
             }
             callback(null, plays);
           });
